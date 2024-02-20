@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Tower.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java_game</a> &gt; <a href="index.source.html" class="el_package">WizardTD</a> &gt; <span class="el_source">Tower.java</span></div><h1>Tower.java</h1><pre class="source lang-java linenums">package WizardTD;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import processing.core.PApplet;
+import processing.core.PImage;
+import processing.core.PShape;
+
+public class Tower extends PApplet {
+
+    PApplet parent; // Reference to the main PApplet
+    private List&lt;PShape&gt; rangeIndicatorShapes;
+<span class="fc" id="L14">    private ArrayList&lt;PShape&gt; damageIndicatorShapes = new ArrayList&lt;&gt;();</span>
+
+
+    //Coordinates of tower
+    private int xCoords;
+    private int yCoords;
+    private int realCentreX;
+    private int realCentreY;
+    //PImage references and functionalities
+    private PImage[] towerImgs;
+    private int towerImgIteration;
+    private int RangeIndicator;
+    private int SpeedIndicator;
+    private int DamageIndicator;
+    //Interactable stats for tower gameplay
+    public int towerRange;
+<span class="fc" id="L30">    private float towerDamage = App.json.getInt(&quot;initial_tower_damage&quot;);</span>
+<span class="fc" id="L31">    double fireRate = App.json.getInt(&quot;initial_tower_firing_speed&quot;); // Fire rate in fireballs per second</span>
+    private double cooldown; // Variable to track time since last shot
+    private float splash_radius;
+    private int freeze_duration;
+
+    //STAT LEVELS 
+<span class="fc" id="L37">    private int rangeLevel = 0;</span>
+<span class="fc" id="L38">    private int speedLevel = 0;</span>
+<span class="fc" id="L39">    private int damageLevel = 0;</span>
+<span class="fc" id="L40">    private boolean level_1 = false;</span>
+<span class="fc" id="L41">    private boolean level_2 = false;</span>
+<span class="fc" id="L42">    private boolean rangeToggle = false;</span>
+<span class="fc" id="L43">    private boolean speedToggle = false;</span>
+<span class="fc" id="L44">    private  boolean damageToggle = false;</span>
+
+    //GUI
+    // Define the dimensions and position of the white box
+    float boxWidth;
+    float boxHeight;
+    float boxX;
+    float boxY;
+    int total;
+
+    ArrayList&lt;PShape&gt; oShapes;
+
+<span class="fc" id="L56">    public Tower(PApplet parent, int gridX, int gridY, PImage[] towerImgs) {</span>
+<span class="fc" id="L57">        this.parent = parent;</span>
+<span class="fc" id="L58">        this.towerImgs = towerImgs;</span>
+
+<span class="fc" id="L60">        towerImgIteration = 0;</span>
+        
+<span class="fc" id="L62">        xCoords = (gridX * App.CELLSIZE);</span>
+<span class="fc" id="L63">        yCoords = (gridY * App.CELLSIZE) + App.TOPBAR;</span>
+
+<span class="fc" id="L65">        realCentreX = xCoords + (App.CELLSIZE / 2);</span>
+<span class="fc" id="L66">        realCentreY = yCoords + (App.CELLSIZE / 2);</span>
+
+<span class="fc" id="L68">        this.towerRange = App.json.getInt(&quot;initial_tower_range&quot;);</span>
+
+<span class="fc" id="L70">        rangeIndicatorShapes = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        for (int i = 0; i &lt; 300; i++) {</span>
+<span class="fc" id="L72">            PShape rangeIndicatorShape = parent.createShape(parent.ELLIPSE, realCentreX - App.CELLSIZE/2 + i*6, yCoords + 4, 6, 6);</span>
+<span class="fc" id="L73">            rangeIndicatorShape.setFill(false); // No fill</span>
+<span class="fc" id="L74">            rangeIndicatorShape.setStroke(parent.color(255, 0, 255)); // Red outline color</span>
+<span class="fc" id="L75">            rangeIndicatorShapes.add(rangeIndicatorShape);</span>
+        }
+
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        for (int i = 0; i &lt; 300; i++) {</span>
+<span class="fc" id="L79">            PShape xShape = createXShape(); // Create a custom &quot;X&quot; shape</span>
+<span class="fc" id="L80">            xShape.setFill(parent.color(255, 0, 255));</span>
+<span class="fc" id="L81">            xShape.setStroke(false);</span>
+<span class="fc" id="L82">            xShape.setStrokeWeight(1);</span>
+<span class="fc" id="L83">            damageIndicatorShapes.add(xShape);</span>
+        }
+<span class="fc" id="L85">    }</span>
+
+    private PShape createXShape() {
+<span class="fc" id="L88">        PShape xShape = parent.createShape();</span>
+<span class="fc" id="L89">        xShape.beginShape();</span>
+
+<span class="fc" id="L91">        xShape.setStrokeWeight(1);</span>
+        
+<span class="fc" id="L93">        float halfWidth = 3; // Half the width of the &quot;X&quot;</span>
+<span class="fc" id="L94">        float halfHeight = 5; // Half the height of the &quot;X&quot;</span>
+        
+        // Define the first line of the &quot;X&quot; from top-left to bottom-right
+<span class="fc" id="L97">        xShape.vertex(-halfWidth, -halfHeight);</span>
+<span class="fc" id="L98">        xShape.vertex(halfWidth, halfHeight);</span>
+        
+        // Define the second line of the &quot;X&quot; from top-right to bottom-left
+<span class="fc" id="L101">        xShape.vertex(halfWidth, -halfHeight);</span>
+<span class="fc" id="L102">        xShape.vertex(-halfWidth, halfHeight);</span>
+        
+<span class="fc" id="L104">        xShape.endShape();</span>
+<span class="fc" id="L105">        return xShape;</span>
+    }
+
+        // Initialize the attack range PShape
+    public int getImgIteration() {
+<span class="fc" id="L110">        return towerImgIteration;</span>
+    }
+
+    public void setLevel_1() {
+<span class="fc" id="L114">        level_1 = true;</span>
+<span class="fc" id="L115">    }</span>
+
+    public void setLevel_2() {
+<span class="fc" id="L118">        level_2 = true;</span>
+<span class="fc" id="L119">    }</span>
+
+    public void setRangeToggle(boolean toggle) {
+<span class="fc" id="L122">        rangeToggle = toggle;</span>
+<span class="fc" id="L123">    }</span>
+
+    public void setSpeedToggle(boolean toggle) {
+<span class="fc" id="L126">        speedToggle = toggle;</span>
+<span class="fc" id="L127">    }</span>
+
+    public void setDamageToggle(boolean toggle) {
+<span class="fc" id="L130">        damageToggle = toggle;</span>
+<span class="fc" id="L131">    }</span>
+
+    public float getXCoords() {
+<span class="fc" id="L134">        return xCoords;</span>
+    }
+    
+    public float getYCoords() {
+<span class="fc" id="L138">        return yCoords;</span>
+    }
+    
+    // Method to check if the mouse is over the button
+    boolean isMouseOver() {
+<span class="pc bpc" id="L143" title="2 of 8 branches missed.">        return parent.mouseX &gt;= xCoords &amp;&amp; parent.mouseX &lt;= xCoords + 32 &amp;&amp; parent.mouseY &gt;= yCoords &amp;&amp; parent.mouseY &lt;= yCoords + 32;</span>
+    }
+
+    public int UpgradeRangeCost() {
+<span class="fc" id="L147">        int mana_cost = 20 + rangeLevel * 10;</span>
+<span class="fc" id="L148">        return mana_cost;</span>
+    }
+
+    public int UpgradeSpeedCost() {
+<span class="fc" id="L152">        int mana_cost = 20 + speedLevel * 10;</span>
+<span class="fc" id="L153">        return mana_cost;</span>
+    }
+
+    public int UpgradeDamageCost() {
+<span class="fc" id="L157">        int mana_cost = 20 + damageLevel * 10;</span>
+<span class="fc" id="L158">        return mana_cost;</span>
+    }
+
+    // Method to decrement the cooldown timer
+    public void decrementCooldown() {
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (cooldown &gt; 0) {</span>
+<span class="fc" id="L164">            cooldown -= frameRate * App.fast_forward_modifier; // Decrement by the frame rate (milliseconds per frame)</span>
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">            if (cooldown &lt; 0) {</span>
+<span class="nc" id="L166">                cooldown = 0; // Ensure cooldown doesn't go negative</span>
+            }
+        }
+<span class="fc" id="L169">    }</span>
+
+    public double getCooldown() {
+<span class="fc" id="L172">        return cooldown;</span>
+    }
+
+    public double getFireRate() {
+<span class="fc" id="L176">        return fireRate;</span>
+    }
+
+    public void setCooldown(double timeBetweenShots) {
+<span class="fc" id="L180">        cooldown = timeBetweenShots;</span>
+<span class="fc" id="L181">    }</span>
+
+    public void findEnemy(boolean hasFired, List&lt;Monsters&gt; enemies, List&lt;Fireball&gt; activeFireballs, PImage projectileImg, boolean default_tower) {
+        // Iterate through all enemies to find targets
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        for (Monsters enemy : enemies) {</span>
+            // Calculate the distance between the tower and enemy
+<span class="fc" id="L187">            float distance = dist(getXCoords() + App.CELLSIZE / 2, getYCoords() + App.CELLSIZE / 2,</span>
+<span class="fc" id="L188">                    enemy.getX() + Monsters.MONSTER_SIZE / 2, enemy.getY() + Monsters.MONSTER_SIZE / 2);</span>
+            
+            // If the enemy is within the tower's range and not dying, attack it
+<span class="fc bfc" id="L191" title="All 2 branches covered.">            if (!default_tower) { // So freeze tower does not attack frozen enemy again</span>
+<span class="fc bfc" id="L192" title="All 6 branches covered.">                if (distance &lt;= getAttackRange() &amp;&amp; !enemy.getDying() &amp;&amp; !enemy.isFrozen()) { </span>
+<span class="fc" id="L193">                    attackEnemy(enemy, activeFireballs, projectileImg);</span>
+<span class="fc" id="L194">                    hasFired = true; // Tower has fired</span>
+<span class="fc" id="L195">                    break; // Exit the loop since the tower has fired</span>
+                }
+            } else {
+<span class="fc bfc" id="L198" title="All 4 branches covered.">                if (distance &lt;= getAttackRange() &amp;&amp; !enemy.getDying()) {</span>
+<span class="fc" id="L199">                    attackEnemy(enemy, activeFireballs, projectileImg);</span>
+<span class="fc" id="L200">                    hasFired = true; // Tower has fired</span>
+<span class="fc" id="L201">                    break; // Exit the loop since the tower has fired</span>
+                }
+            }
+<span class="fc" id="L204">        }</span>
+
+            
+<span class="fc bfc" id="L207" title="All 2 branches covered.">            if (hasFired) {</span>
+<span class="fc" id="L208">                double timeBetweenShots = 1000.0 / getFireRate(); // Convert fire rate from fireballs per second to milliseconds</span>
+<span class="fc" id="L209">                setCooldown(timeBetweenShots);</span>
+        }
+<span class="fc" id="L211">    }</span>
+
+    public void attackEnemy(Monsters enemy, List&lt;Fireball&gt; activeFireballs, PImage projectileImg) {
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        if (cooldown &lt;= 0) { // Check if the tower is ready to fire (cooldown has expired)</span>
+            Fireball projectile;
+<span class="fc bfc" id="L216" title="All 2 branches covered.">            if (this instanceof FreezeTower) {</span>
+<span class="fc" id="L217">                projectile = new Snowball(realCentreX, realCentreY, enemy, towerDamage, projectileImg, splash_radius, freeze_duration); // Create a new Fireball targeting the specified enemy</span>
+            } else {
+<span class="fc" id="L219">                projectile = new Fireball(realCentreX, realCentreY, enemy, towerDamage, projectileImg);</span>
+            }
+<span class="fc" id="L221">            activeFireballs.add(projectile); // Add the fireball to the list of active fireballs</span>
+
+<span class="fc" id="L223">            cooldown = (int)(1000.0 / fireRate); // Reset the cooldown in milliseconds based on fireRate</span>
+
+        }
+<span class="fc" id="L226">    }</span>
+
+    public void upgradeRange() {
+<span class="fc" id="L229">        rangeLevel += 1;</span>
+<span class="fc" id="L230">        RangeIndicator += 1;</span>
+
+<span class="fc" id="L232">        towerRange += 32;</span>
+<span class="fc" id="L233">    }</span>
+
+    public void upgradeSpeed() {
+<span class="fc" id="L236">        speedLevel += 1;</span>
+<span class="fc" id="L237">        SpeedIndicator += 1;</span>
+
+<span class="fc" id="L239">        fireRate += 0.5;</span>
+<span class="fc" id="L240">    }</span>
+
+    public void upgradeDamage() {
+<span class="fc" id="L243">        damageLevel += 1;</span>
+<span class="fc" id="L244">        DamageIndicator += 1;</span>
+
+<span class="fc" id="L246">        towerDamage += App.json.getInt(&quot;initial_tower_damage&quot;)/2;</span>
+<span class="fc" id="L247">    }</span>
+
+    public void updateTowerImage() {
+<span class="fc bfc" id="L250" title="All 14 branches covered.">        if ((rangeLevel &gt;= 1 &amp;&amp; speedLevel &gt;= 1 &amp;&amp; damageLevel &gt;= 1) &amp;&amp;</span>
+        (rangeLevel &lt; 2 || speedLevel &lt; 2 || damageLevel &lt; 2) &amp;&amp; level_1 == false) {
+<span class="fc" id="L252">            towerImgIteration = 1;</span>
+<span class="fc" id="L253">            RangeIndicator -= 1;</span>
+<span class="fc" id="L254">            SpeedIndicator -= 1;</span>
+<span class="fc" id="L255">            DamageIndicator -= 1;</span>
+<span class="fc" id="L256">            level_1 = true; //So that it can't be called twice</span>
+        }
+<span class="pc bpc" id="L258" title="3 of 14 branches missed.">        if ((rangeLevel &gt;= 2 &amp;&amp; speedLevel &gt;= 2 &amp;&amp; damageLevel &gt;= 2)  &amp;&amp;</span>
+        (rangeLevel &lt; 3 || speedLevel &lt; 3 || damageLevel &lt; 3) &amp;&amp; level_2 == false) {
+<span class="fc" id="L260">            towerImgIteration = 2;</span>
+<span class="fc" id="L261">            RangeIndicator -= 1;</span>
+<span class="fc" id="L262">            SpeedIndicator -= 1;</span>
+<span class="fc" id="L263">            DamageIndicator -= 1;</span>
+<span class="fc" id="L264">            level_2 = true; //So that it can't be called twice</span>
+        }
+<span class="fc" id="L266">    }</span>
+
+    public void defineUpgradeBox(int dimension_increment) {
+        // Define the dimensions and position of the white box
+<span class="fc" id="L270">        boxWidth = 90;</span>
+<span class="fc" id="L271">        boxHeight = 50 + 20 * dimension_increment;</span>
+<span class="fc" id="L272">        boxX = 650;</span>
+<span class="fc" id="L273">        boxY = 555;</span>
+                
+        // Draw white box in the bottom right corner
+<span class="fc" id="L276">        parent.fill(255);</span>
+<span class="fc" id="L277">        parent.rect(boxX, boxY, boxWidth, boxHeight);</span>
+
+        // Draw black lines to split rows
+                
+<span class="fc" id="L281">        parent.stroke(0);</span>
+<span class="fc" id="L282">        parent.strokeWeight(2);</span>
+<span class="fc" id="L283">        parent.line(boxX, boxY + 25, boxX + boxWidth, boxY + 25);</span>
+<span class="fc" id="L284">        parent.line(boxX, boxY + 25 + (20 * dimension_increment) , boxX + boxWidth, boxY + 25 + (20 * dimension_increment));</span>
+<span class="fc" id="L285">    }</span>
+
+    public int checkToggles() {
+<span class="fc" id="L288">        int dimension_increment = 0;</span>
+<span class="fc bfc" id="L289" title="All 6 branches covered.">        if (rangeToggle || speedToggle || damageToggle) {</span>
+<span class="fc bfc" id="L290" title="All 2 branches covered.">            if (rangeToggle) {</span>
+<span class="fc" id="L291">                dimension_increment += 1;</span>
+            }
+<span class="fc bfc" id="L293" title="All 2 branches covered.">            if (speedToggle) {</span>
+<span class="fc" id="L294">                dimension_increment += 1;</span>
+            }
+<span class="fc bfc" id="L296" title="All 2 branches covered.">            if (damageToggle) {</span>
+<span class="fc" id="L297">                dimension_increment += 1;</span>
+            }
+        }
+
+<span class="fc" id="L301">        return dimension_increment;</span>
+    }
+
+    public void drawInfoBox() {
+<span class="fc" id="L305">        int speed_cost = 20 + speedLevel * 10;</span>
+<span class="fc" id="L306">        int range_cost = 20 + rangeLevel * 10;      </span>
+<span class="fc" id="L307">        int damage_cost = 20 + damageLevel * 10;       </span>
+
+<span class="fc" id="L309">        int dimension_increment = checkToggles();</span>
+        
+<span class="fc bfc" id="L311" title="All 2 branches covered.">        if (dimension_increment != 0) {</span>
+<span class="fc" id="L312">            defineUpgradeBox(dimension_increment);</span>
+
+            // Set text properties
+<span class="fc" id="L315">            parent.fill(0);</span>
+<span class="fc" id="L316">            parent.textSize(12);</span>
+
+            // Draw &quot;Upgrade cost:&quot; in the first row
+<span class="fc" id="L319">            parent.text(&quot;Upgrade cost&quot;, boxX + 10, boxY + 5);</span>
+
+            // Draw variables/stats in the second row
+<span class="fc" id="L322">            int textAlignModifier = 0;</span>
+<span class="pc bpc" id="L323" title="1 of 2 branches missed.">            if (rangeToggle) {</span>
+<span class="fc" id="L324">                textAlignModifier += 1;</span>
+<span class="fc" id="L325">                parent.text(&quot;range:      &quot; + range_cost, boxX + 10, boxY + 10 + 20 * textAlignModifier);</span>
+            } else {
+<span class="nc" id="L327">                range_cost = 0;</span>
+            }
+<span class="pc bpc" id="L329" title="1 of 2 branches missed.">            if (speedToggle) {</span>
+<span class="fc" id="L330">                textAlignModifier += 1;</span>
+<span class="fc" id="L331">                parent.text(&quot;speed:      &quot; + speed_cost, boxX + 10, boxY + 10 + 20 * textAlignModifier);</span>
+            } else {
+<span class="nc" id="L333">                speed_cost = 0;</span>
+            }
+<span class="pc bpc" id="L335" title="1 of 2 branches missed.">            if (damageToggle) {</span>
+<span class="fc" id="L336">                textAlignModifier += 1;</span>
+<span class="fc" id="L337">                parent.text(&quot;damage:   &quot; + damage_cost, boxX + 10, boxY + 10 + 20 * textAlignModifier);</span>
+            } else {
+<span class="nc" id="L339">                damage_cost = 0;</span>
+            }
+
+<span class="fc" id="L342">            parent.text(&quot;Total:      &quot; + (range_cost + speed_cost + damage_cost), boxX + 10, boxY + 30 + 20 * textAlignModifier);</span>
+        }
+<span class="fc" id="L344">    }</span>
+
+    public void drawAttackRange(PApplet app) {
+            // Set the drawing properties for the attack range circle
+<span class="fc" id="L348">            parent.pushStyle(); // Save the current drawing state</span>
+<span class="fc" id="L349">            parent.noFill(); // No fill</span>
+<span class="fc" id="L350">            parent.stroke(255, 255, 0); // Yellow outline color</span>
+<span class="fc" id="L351">            parent.strokeWeight(2); // Adjust line thickness for the outline</span>
+
+            // Draw the attack range circle
+<span class="fc" id="L354">            parent.ellipse(realCentreX, realCentreY, towerRange * 2, towerRange * 2);</span>
+
+            // Restore the previous drawing state to avoid affecting other shapes
+<span class="fc" id="L357">            parent.popStyle();</span>
+<span class="fc" id="L358">    }</span>
+
+    public void drawRangeIndicator(PApplet app) {
+<span class="fc bfc" id="L361" title="All 4 branches covered.">        for (int i = 0; i &lt; rangeIndicatorShapes.size() &amp;&amp; i &lt; RangeIndicator; i++) {</span>
+<span class="fc" id="L362">            PShape shape = rangeIndicatorShapes.get(i); // Get the shape at index i</span>
+<span class="fc" id="L363">            shape.setFill(false); // No fill</span>
+<span class="fc" id="L364">            shape.setStroke(app.color(255, 0, 255)); // Red outline color</span>
+<span class="fc" id="L365">            app.shape(shape); // Draw each range indicator shape</span>
+        }
+<span class="fc" id="L367">    }</span>
+
+    public void drawDamageIndicators(PApplet app) {
+<span class="pc bpc" id="L370" title="1 of 4 branches missed.">        for (int i = 0; i &lt; damageIndicatorShapes.size() &amp;&amp; i &lt; DamageIndicator; i++) {</span>
+<span class="fc" id="L371">            PShape xShape = damageIndicatorShapes.get(i);</span>
+<span class="fc" id="L372">            xShape.resetMatrix();</span>
+<span class="fc" id="L373">            xShape.translate(realCentreX - App.CELLSIZE / 2 + i * 7, yCoords + App.CELLSIZE / 2 + 12);</span>
+<span class="fc" id="L374">            app.shape(xShape);</span>
+        }
+<span class="fc" id="L376">    }</span>
+
+    public void draw(PApplet app) {
+<span class="fc" id="L379">        app.image(towerImgs[towerImgIteration], xCoords, yCoords);</span>
+
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">        if (isMouseOver()) {</span>
+<span class="nc" id="L382">            drawAttackRange(app);</span>
+
+<span class="nc" id="L384">            drawInfoBox();</span>
+        } 
+
+<span class="fc bfc" id="L387" title="All 2 branches covered.">        for (int i = 0; i &lt; RangeIndicator; i++) {</span>
+<span class="fc" id="L388">            drawRangeIndicator(app);</span>
+         }
+
+<span class="fc bfc" id="L391" title="All 2 branches covered.">        for (int i = 0; i &lt; SpeedIndicator; i++) {</span>
+            // Set the fill color to transparent (no fill)
+<span class="fc" id="L393">            app.noFill();</span>
+            
+            // Set the stroke color to blue
+<span class="fc" id="L396">            app.stroke(0, 100, 200);</span>
+            
+            // Set the stroke weight (line thickness) to a constant value
+<span class="fc" id="L399">            app.strokeWeight(2 + i/2);</span>
+            
+            // Calculate the position of the square
+<span class="fc" id="L402">            float squareX = realCentreX - App.CELLSIZE / 4;</span>
+<span class="fc" id="L403">            float squareY = realCentreY - App.CELLSIZE / 4;</span>
+            
+            // Draw the square with a blue outline
+<span class="fc" id="L406">            app.rect(squareX, squareY, App.CELLSIZE / 2, App.CELLSIZE / 2);</span>
+            // Reset stroke settings
+<span class="fc" id="L408">            app.stroke(0); // Set stroke color to transparent (no stroke)</span>
+<span class="fc" id="L409">            app.strokeWeight(1); // Reset stroke weight to its default value</span>
+        }
+        
+<span class="fc bfc" id="L412" title="All 2 branches covered.">        for (int i = 0; i &lt; DamageIndicator; i++) {</span>
+<span class="fc" id="L413">            drawDamageIndicators(app);</span>
+        }
+<span class="fc" id="L415">    }</span>
+
+    public float getAttackRange() {
+<span class="fc" id="L418">        return towerRange;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.9.202303310957</span></div></body></html>

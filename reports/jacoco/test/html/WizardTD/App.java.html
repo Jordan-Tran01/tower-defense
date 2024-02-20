@@ -1,0 +1,771 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>App.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java_game</a> &gt; <a href="index.source.html" class="el_package">WizardTD</a> &gt; <span class="el_source">App.java</span></div><h1>App.java</h1><pre class="source lang-java linenums">package WizardTD;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.Iterator; // Import the Iterator class
+
+import processing.core.PApplet;
+import processing.core.PFont;
+import processing.core.PImage;
+import processing.data.JSONObject;
+import processing.event.MouseEvent;
+
+
+public class App extends PApplet {
+
+    public static final int CELLSIZE = 32;
+    public static final int SIDEBAR = 120;
+    public static final int TOPBAR = 40;
+    public static final int BOARD_WIDTH = 20;
+    public static final int BOARD_HEIGHT = 20;
+<span class="fc" id="L22">    public static int WIDTH = CELLSIZE*BOARD_WIDTH+SIDEBAR;</span>
+<span class="fc" id="L23">    public static int HEIGHT = BOARD_WIDTH*CELLSIZE+TOPBAR;</span>
+<span class="fc" id="L24">    public static int FPS = 60;</span>
+
+    static JSONObject json;
+    public static Board board;
+    Tile[][] grid;
+
+    public String configPath;
+
+<span class="fc" id="L32">    public Random random = new Random();</span>
+
+    //GUI INITALISATION
+    Button fastButton;
+    Button pauseButton;
+    Button manaButton;
+
+    //TOWER Buttons
+    Button towerButton;
+    static Button rangeButton;
+    static Button speedButton;
+    static Button damageButton;
+    Button icetowerButton;
+
+    static double tower_cost;
+
+<span class="fc" id="L48">    private float ManaBarWidth = 300;</span>
+<span class="fc" id="L49">    private float ManaBarHeight = 25;</span>
+<span class="fc" id="L50">    private float ManaBarX = 430;</span>
+<span class="fc" id="L51">    private float ManaBarY = 8;</span>
+
+    float mana; // Setting default initial mana here but will change later in setup
+    float mana_cap;
+    float mana_gained_per_sec;
+
+    int intMana;
+    int intManaCap;
+    float textX;
+    float textY;
+
+    static double mana_pool_spell_initial_cost;
+    double mana_pool_spell_cost_increase_per_use;
+    double mana_pool_spell_cap_multiplier;
+    double mana_pool_spell_mana_gained_multiplier;
+    double mana_kill_multiplier;
+
+    private double pauseTimer;
+    private int frameCounter;
+    private int frameCounter_2;
+    private int elapsedTime;
+    private int wave_duration; //Define a variable to keep track of wave duration
+    private double next_pre_wave_pause; //Keep track of the next pre_wave_pause
+
+<span class="fc" id="L75">    public ArrayList&lt;Button&gt; buttons = new ArrayList&lt;Button&gt;();</span>
+<span class="fc" id="L76">    public List&lt;Tower&gt; towers = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L77">    public List&lt;Fireball&gt; activeFireballs = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L78">    public List&lt;Monsters&gt; enemies = new ArrayList&lt;&gt;();</span>
+    private Iterator&lt;Monsters&gt; enemyIterator;
+    private List&lt;Monsters&gt; respawnedEnemies;
+    private Iterator&lt;Monsters&gt; banished_monster_iterator;
+
+    public Monsters banished_monster;
+    public int spawnedMonsters; // Keep track of the number of spawned monsters
+    public double spawnTime;
+
+    public String waveInfoText; // Text to display wave info
+    public double timeUntilNextWave; // Countdown time for the upcoming wave
+    public int countdownTimer;
+    public int wave_number;
+    public boolean timer_call;
+    public Boolean lose;
+    public boolean win;
+    public PImage towerImg;
+    public PImage[] towerImgs;
+    public PImage[] icetowerImgs;
+    public static PImage gremlinImg;
+    public static PImage frozengremlinImg;
+    public static PImage beetleImg;
+    public static PImage wormImg;
+    public PImage fireballImg;
+    public PImage snowballImg;
+    static PImage[] deathFrames; // Array of death animation frames
+    public PImage frozen_gremlin;
+    public PImage frozen_beetle;
+    public PImage frozen_worm;
+    public static PImage grassImg;
+    public static PImage shrubImg;
+    public static PImage path0Img;
+    public static PImage path1Img;
+    public static PImage path2Img;
+    public static PImage path3Img;
+    public static PImage wizardImg;
+
+    public Wave wave;
+    //Starting from here these are all setup variables
+    public static float fast_forward_modifier;
+    
+    //Font variables
+    public PFont endFont;
+    public PFont globalFont;
+
+
+<span class="fc" id="L124">    public App() {</span>
+<span class="fc" id="L125">        this.configPath = &quot;config.json&quot;;</span>
+<span class="fc" id="L126">    }</span>
+
+    /**
+     * Initialise the setting of the window size.
+     */
+	@Override
+    public void settings() {
+<span class="fc" id="L133">        size(WIDTH, HEIGHT);</span>
+<span class="fc" id="L134">        noSmooth();</span>
+<span class="fc" id="L135">    }</span>
+
+    /**
+     * Load all resources such as images. Initialise the elements such as the player, enemies and map elements.
+     */
+
+	@Override
+    public void setup() {
+<span class="fc" id="L143">        frameRate(FPS);</span>
+
+        //Game setup variables:
+<span class="fc" id="L146">        fast_forward_modifier = 1;</span>
+<span class="fc" id="L147">        waveInfoText = &quot;&quot;;</span>
+<span class="fc" id="L148">        wave_number = 0;</span>
+<span class="fc" id="L149">        timer_call = true; //To call time until first wave by default</span>
+<span class="fc" id="L150">        spawnedMonsters = 0;</span>
+<span class="fc" id="L151">        lose = false;</span>
+<span class="fc" id="L152">        win = false;</span>
+<span class="fc" id="L153">        pauseTimer = 0; //To track how long game has been paused</span>
+<span class="fc" id="L154">        frameCounter = 0; //To count the frames passed</span>
+<span class="fc" id="L155">        frameCounter_2 = 0;</span>
+<span class="fc" id="L156">        elapsedTime = 0;</span>
+<span class="fc" id="L157">        spawnTime = 0;</span>
+
+<span class="fc" id="L159">        mana_kill_multiplier = 1;</span>
+
+<span class="fc" id="L161">        load_json();</span>
+
+<span class="fc" id="L163">        initalise_map();</span>
+
+<span class="fc" id="L165">        generate_buttons();</span>
+
+<span class="fc" id="L167">        initalise_entities();</span>
+
+<span class="fc" id="L169">        wave.tickWave(this); //Populates enemies full of monsters for current wave. Only updates when current wave duration finishes</span>
+<span class="fc" id="L170">    }</span>
+
+    public void initalise_map() {
+<span class="fc" id="L173">        grid = new Tile[20][20];</span>
+
+<span class="fc" id="L175">        app_loadImages();</span>
+
+<span class="fc" id="L177">        board = new Board(WIDTH, HEIGHT, json.getString(&quot;layout&quot;));</span>
+<span class="fc" id="L178">        board.findStartCoordinates();</span>
+<span class="fc" id="L179">        board.findStartAndGoalNodes();</span>
+<span class="fc" id="L180">        boolean[][] clickableGrid = board.getClickableGrid();</span>
+        //GRID MAP DETAILS START
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        for (int x = 0; x &lt; 20; x++) {</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">            for (int y = 0; y &lt; 20; y++) {</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">                if (clickableGrid[y][x] == true) {</span>
+<span class="fc" id="L185">                    grid[x][y] = new Tile(true); // Grass tile (clickable)</span>
+                } else {
+<span class="fc" id="L187">                    grid[x][y] = new Tile(false); // Non-grass tile (not clickable)</span>
+                }
+            }
+        }
+<span class="fc" id="L191">    }</span>
+
+    public void initalise_entities() {
+<span class="fc" id="L194">        towers = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L195">        enemies = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L196">        activeFireballs = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L197">        respawnedEnemies = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L199">        wave = new Wave(this, json.getJSONArray(&quot;waves&quot;));</span>
+<span class="fc" id="L200">    }</span>
+
+    public void load_json() {
+<span class="fc" id="L203">        json = loadJSONObject(&quot;config.json&quot;);</span>
+        //All public/config variables here
+<span class="fc" id="L205">        mana = json.getFloat(&quot;initial_mana&quot;);</span>
+<span class="fc" id="L206">        mana_cap = json.getFloat(&quot;initial_mana_cap&quot;);</span>
+<span class="fc" id="L207">        mana_gained_per_sec = json.getFloat(&quot;initial_mana_gained_per_second&quot;);</span>
+<span class="fc" id="L208">        tower_cost = json.getFloat(&quot;tower_cost&quot;);</span>
+<span class="fc" id="L209">        mana_pool_spell_initial_cost = json.getDouble(&quot;mana_pool_spell_initial_cost&quot;);</span>
+<span class="fc" id="L210">        mana_pool_spell_cost_increase_per_use = json.getDouble(&quot;mana_pool_spell_cost_increase_per_use&quot;);</span>
+<span class="fc" id="L211">        mana_pool_spell_cap_multiplier = json.getDouble(&quot;mana_pool_spell_cap_multiplier&quot;);</span>
+<span class="fc" id="L212">        mana_pool_spell_mana_gained_multiplier = json.getDouble(&quot;mana_pool_spell_mana_gained_multiplier&quot;);</span>
+<span class="fc" id="L213">    }</span>
+
+    public void generate_buttons() {
+        //Generate all board details START
+<span class="fc" id="L217">        fastButton = new Button(this, 650, 50, 50, 50, &quot;FF&quot;, &quot;2x speed&quot;);</span>
+<span class="fc" id="L218">        pauseButton = new Button(this, 650, 110, 50, 50, &quot;P&quot;, &quot;PAUSE&quot;);</span>
+<span class="fc" id="L219">        towerButton = new Button(this, 650, 170, 50, 50, &quot;T&quot;, &quot;Build tower&quot;);</span>
+<span class="fc" id="L220">        rangeButton = new Button(this, 650, 230, 50, 50, &quot;U1&quot;, &quot;Upgrade range&quot;);</span>
+<span class="fc" id="L221">        speedButton = new Button(this, 650, 290, 50, 50, &quot;U2&quot;, &quot;Upgrade speed&quot;);</span>
+<span class="fc" id="L222">        damageButton = new Button(this, 650, 350, 50, 50, &quot;U3&quot;, &quot;Upgrade damage&quot;);</span>
+<span class="fc" id="L223">        manaButton = new Button(this, 650, 410, 50, 50, &quot;M&quot;, &quot;Mana pool cost: 100&quot;);</span>
+<span class="fc" id="L224">        icetowerButton = new Button(this, 650, 470, 50, 50, &quot;I&quot;, &quot;Build ice tower&quot;);</span>
+
+        // Add the buttons to the list 
+<span class="fc" id="L227">        buttons = new ArrayList&lt;Button&gt;();</span>
+<span class="fc" id="L228">        buttons.add(fastButton);</span>
+<span class="fc" id="L229">        buttons.add(pauseButton);</span>
+<span class="fc" id="L230">        buttons.add(towerButton);</span>
+<span class="fc" id="L231">        buttons.add(rangeButton);</span>
+<span class="fc" id="L232">        buttons.add(speedButton);</span>
+<span class="fc" id="L233">        buttons.add(damageButton);</span>
+<span class="fc" id="L234">        buttons.add(manaButton);</span>
+<span class="fc" id="L235">        buttons.add(icetowerButton);</span>
+<span class="fc" id="L236">    }</span>
+    
+    public void app_loadImages() {
+        // Load image within the Board class using the provided PApplet instance
+<span class="fc" id="L240">        grassImg = loadImage(&quot;src/main/resources/WizardTD/grass.png&quot;);</span>
+<span class="fc" id="L241">        shrubImg = loadImage(&quot;src/main/resources/WizardTD/shrub.png&quot;);</span>
+<span class="fc" id="L242">        path0Img = loadImage(&quot;src/main/resources/WizardTD/path0.png&quot;);</span>
+<span class="fc" id="L243">        path1Img = loadImage(&quot;src/main/resources/WizardTD/path1.png&quot;);</span>
+<span class="fc" id="L244">        path2Img = loadImage(&quot;src/main/resources/WizardTD/path2.png&quot;);</span>
+<span class="fc" id="L245">        path3Img = loadImage(&quot;src/main/resources/WizardTD/path3.png&quot;);</span>
+<span class="fc" id="L246">        wizardImg = loadImage(&quot;src/main/resources/WizardTD/wizard_house.png&quot;);</span>
+
+<span class="fc" id="L248">        gremlinImg = loadImage(&quot;src/main/resources/WizardTD/gremlin.png&quot;);</span>
+<span class="fc" id="L249">        beetleImg = loadImage(&quot;src/main/resources/WizardTD/beetle.png&quot;);</span>
+<span class="fc" id="L250">        wormImg = loadImage(&quot;src/main/resources/WizardTD/worm.png&quot;);</span>
+<span class="fc" id="L251">        frozengremlinImg = loadImage(&quot;src/main/resources/WizardTD/gremlin0.png&quot;);</span>
+<span class="fc" id="L252">        deathFrames = new PImage[5];</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">        for (int i = 1; i &lt; deathFrames.length; i++) {</span>
+<span class="fc" id="L254">            deathFrames[i] = loadImage(&quot;src/main/resources/WizardTD/gremlin&quot; + i + &quot;.png&quot;);</span>
+        }
+
+<span class="fc" id="L257">        fireballImg = loadImage(&quot;src/main/resources/WizardTD/fireball.png&quot;);</span>
+<span class="fc" id="L258">        snowballImg = loadImage(&quot;src/main/resources/WizardTD/snowball.png&quot;);</span>
+
+<span class="fc" id="L260">        towerImgs = new PImage[3];</span>
+
+<span class="fc bfc" id="L262" title="All 2 branches covered.">        for (int i = 0; i &lt; towerImgs.length; i++) {</span>
+<span class="fc" id="L263">            towerImgs[i] = loadImage(&quot;src/main/resources/WizardTD/tower&quot; + i + &quot;.png&quot;);</span>
+        }
+
+<span class="fc" id="L266">        icetowerImgs = new PImage[1];</span>
+<span class="fc" id="L267">        icetowerImgs[0] = loadImage(&quot;src/main/resources/WizardTD/tower_ice.png&quot;);</span>
+<span class="fc" id="L268">    }</span>
+    
+
+    /**
+     * Receive key pressed signal from the keyboard.
+     */
+	@Override
+    public void keyPressed(){
+<span class="fc bfc" id="L276" title="All 4 branches covered.">        if (key == 't' || key == 'T') {</span>
+            // Your code to handle the 't' key press goes here
+<span class="fc bfc" id="L278" title="All 2 branches covered.">            if (towerButton.getPressed() == false) {</span>
+<span class="fc" id="L279">                towerButton.setPressed(true);</span>
+            } else {
+<span class="fc" id="L281">                towerButton.setPressed(false);</span>
+            }
+        }
+
+<span class="fc bfc" id="L285" title="All 4 branches covered.">        if (key == 'i' || key == 'I') {</span>
+            // Your code to handle the 't' key press goes here
+<span class="fc bfc" id="L287" title="All 2 branches covered.">            if (icetowerButton.getPressed() == false) {</span>
+<span class="fc" id="L288">                icetowerButton.setPressed(true);</span>
+            } else {
+<span class="fc" id="L290">                icetowerButton.setPressed(false);</span>
+            }
+        }
+
+<span class="fc bfc" id="L294" title="All 4 branches covered.">        if (key == 'f' || key == 'F') {</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">            if (!fastButton.getPressed()) {</span>
+<span class="fc" id="L296">              fastButton.setPressed(true);</span>
+<span class="fc" id="L297">              fast_forward_modifier = 2;</span>
+            } else {
+<span class="fc" id="L299">              fastButton.setPressed(false);  </span>
+<span class="fc" id="L300">              fast_forward_modifier = 1;</span>
+            }
+<span class="fc bfc" id="L302" title="All 4 branches covered.">        } else if (key == 'p' || key == 'P') {</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">            if (!pauseButton.getPressed()) {</span>
+<span class="fc" id="L304">              pauseButton.setPressed(true);</span>
+            } else {
+<span class="fc" id="L306">              pauseButton.setPressed(false);</span>
+            }
+        }
+
+<span class="fc bfc" id="L310" title="All 2 branches covered.">        if (key == '1') {</span>
+<span class="fc bfc" id="L311" title="All 2 branches covered.">            if (!rangeButton.getPressed()){</span>
+<span class="fc" id="L312">                rangeButton.setPressed(true);</span>
+<span class="pc bpc" id="L313" title="1 of 2 branches missed.">            } else if (rangeButton.getPressed()) {</span>
+<span class="fc" id="L314">                rangeButton.setPressed(false);</span>
+            }
+        }
+
+<span class="fc bfc" id="L318" title="All 2 branches covered.">        if (key == '2') {</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">            if (!speedButton.getPressed()){</span>
+<span class="fc" id="L320">                speedButton.setPressed(true);</span>
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">            } else if (speedButton.getPressed()) {</span>
+<span class="fc" id="L322">                speedButton.setPressed(false);</span>
+            }
+
+        } 
+
+<span class="fc bfc" id="L327" title="All 2 branches covered.">        if (key == '3') {</span>
+<span class="fc bfc" id="L328" title="All 2 branches covered.">            if (!damageButton.getPressed()){</span>
+<span class="fc" id="L329">                damageButton.setPressed(true);</span>
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">            } else if (damageButton.getPressed()) {</span>
+<span class="fc" id="L331">                damageButton.setPressed(false);</span>
+            }
+        } 
+
+<span class="fc bfc" id="L335" title="All 6 branches covered.">        if ((key == 'm' || key == 'M') &amp;&amp; mana &gt; mana_pool_spell_initial_cost) {</span>
+<span class="fc" id="L336">            manaButton.setPressed(true);</span>
+<span class="fc" id="L337">            mana -= mana_pool_spell_initial_cost;</span>
+<span class="fc" id="L338">            mana_pool_spell_initial_cost += mana_pool_spell_cost_increase_per_use;</span>
+<span class="fc" id="L339">            mana_cap = mana_cap * (float) mana_pool_spell_cap_multiplier;</span>
+<span class="fc" id="L340">            mana_kill_multiplier = mana_kill_multiplier * mana_pool_spell_mana_gained_multiplier;</span>
+
+<span class="fc" id="L342">            manaButton.updateDescription();</span>
+        }
+        
+<span class="pc bpc" id="L345" title="4 of 6 branches missed.">        if ((key == 'r' || key == 'R') &amp;&amp; lose == true) {</span>
+<span class="nc" id="L346">            lose = false;</span>
+<span class="nc" id="L347">            setup();</span>
+        }
+<span class="fc" id="L349">    }</span>
+    
+
+    /**
+     * Receive key released signal from the keyboard.
+     */
+	@Override
+    public void keyReleased(){
+<span class="fc bfc" id="L357" title="All 4 branches covered.">        if (key == 'm' || key == 'M') {</span>
+<span class="fc" id="L358">            manaButton.setPressed(false);</span>
+        }
+<span class="fc" id="L360">    }</span>
+
+    public void mousePressed(MouseEvent e) {
+<span class="pc bpc" id="L363" title="2 of 4 branches missed.">        if (mouseX &lt;= 640 &amp;&amp; mouseY &gt;= 40) {</span>
+<span class="fc" id="L364">            HandleTowerPlacement(mouseX, mouseY);</span>
+        }
+
+<span class="fc" id="L367">        MousePressActionButtons();</span>
+<span class="fc" id="L368">    }</span>
+
+    public void MousePressActionButtons() {
+<span class="fc bfc" id="L371" title="All 4 branches covered.">        if (!fastButton.getPressed() &amp;&amp; fastButton.isMouseOver()) {</span>
+<span class="fc" id="L372">            fast_forward_modifier = 2;</span>
+<span class="fc bfc" id="L373" title="All 2 branches covered.">        } else if (fastButton.isMouseOver()) {</span>
+<span class="fc" id="L374">            fast_forward_modifier = 1;</span>
+        }
+
+<span class="pc bpc" id="L377" title="1 of 6 branches missed.">        if ((!manaButton.getPressed() &amp;&amp; manaButton.isMouseOver()) &amp;&amp; mana &gt; mana_pool_spell_initial_cost) {</span>
+<span class="fc" id="L378">            mana -= mana_pool_spell_initial_cost;</span>
+<span class="fc" id="L379">            mana_pool_spell_initial_cost += mana_pool_spell_cost_increase_per_use;</span>
+<span class="fc" id="L380">            mana_cap = mana_cap * (float) mana_pool_spell_cap_multiplier;</span>
+<span class="fc" id="L381">            mana_kill_multiplier = mana_kill_multiplier * mana_pool_spell_mana_gained_multiplier;</span>
+<span class="fc" id="L382">            manaButton.updateDescription();</span>
+        }
+<span class="fc" id="L384">    }</span>
+
+    public void HandleTowerPlacement(int mouseX, int mouseY) {
+        // Check if the click is within the boundaries of the grid and take action accordingly.
+<span class="fc" id="L388">        int adjustedMouseX = mouseX;</span>
+<span class="fc" id="L389">        int adjustedMouseY = mouseY - 40;</span>
+        // Converts mouseX and Y coordinates into their corresponding grid cell
+<span class="fc" id="L391">        int gridX = (adjustedMouseX) / 32;</span>
+<span class="fc" id="L392">        int gridY = (adjustedMouseY) / 32;</span>
+<span class="fc" id="L393">        System.out.println(gridX);</span>
+<span class="fc" id="L394">        System.out.println(gridY);</span>
+<span class="fc bfc" id="L395" title="All 2 branches covered.">        if (towerButton.getPressed() == true) {</span>
+<span class="pc bpc" id="L396" title="1 of 6 branches missed.">            if (grid[gridX][gridY].isClickable() == true &amp;&amp; grid[gridX][gridY].isOccupied() == false &amp;&amp; mana &gt; tower_cost) {</span>
+<span class="fc" id="L397">                mana -= tower_cost;</span>
+<span class="fc" id="L398">                Tower newTower = new Tower(this, gridX, gridY, towerImgs);</span>
+                    
+                // Add the tower to the list of towers
+<span class="fc" id="L401">                towers.add(newTower);</span>
+                    
+                // Mark the grid cell as occupied
+<span class="fc" id="L404">                grid[gridX][gridY].setOccupied(true);</span>
+<span class="fc" id="L405">                grid[gridX][gridY].setTower(newTower);</span>
+<span class="fc" id="L406">            }</span>
+<span class="fc bfc" id="L407" title="All 2 branches covered.">        } else if (icetowerButton.getPressed() == true) {</span>
+<span class="pc bpc" id="L408" title="1 of 6 branches missed.">            if (grid[gridX][gridY].isClickable() == true &amp;&amp; grid[gridX][gridY].isOccupied() == false &amp;&amp; mana &gt; tower_cost) {</span>
+<span class="fc" id="L409">                mana -= tower_cost;</span>
+<span class="fc" id="L410">                FreezeTower newTower = new FreezeTower(this, gridX, gridY, icetowerImgs);</span>
+                    
+                // Add the tower to the list of towers
+<span class="fc" id="L413">                towers.add(newTower);</span>
+                    
+                // Mark the grid cell as occupied
+<span class="fc" id="L416">                grid[gridX][gridY].setOccupied(true);</span>
+<span class="fc" id="L417">                grid[gridX][gridY].setTower(newTower);</span>
+            }
+        }
+
+<span class="fc" id="L421">        Tower targetTower = grid[gridX][gridY].getTower();;</span>
+<span class="fc" id="L422">        boolean default_tower = true;</span>
+<span class="fc bfc" id="L423" title="All 2 branches covered.">        if (grid[gridX][gridY].getTower() instanceof FreezeTower) {</span>
+<span class="fc" id="L424">            default_tower = false;</span>
+        }
+
+<span class="fc bfc" id="L427" title="All 6 branches covered.">        if (rangeButton.getPressed()&amp;&amp; grid[gridX][gridY].isOccupied() &amp;&amp; default_tower) {</span>
+<span class="fc" id="L428">            int mana_cost = targetTower.UpgradeRangeCost();</span>
+<span class="pc bpc" id="L429" title="1 of 2 branches missed.">            if (mana_cost &lt; mana) {</span>
+<span class="fc" id="L430">                mana -= mana_cost;</span>
+<span class="fc" id="L431">                targetTower.upgradeRange();</span>
+<span class="fc" id="L432">                targetTower.updateTowerImage();</span>
+            }
+        } 
+
+<span class="fc bfc" id="L436" title="All 6 branches covered.">        if (speedButton.getPressed() &amp;&amp; grid[gridX][gridY].isOccupied() &amp;&amp; default_tower) {</span>
+<span class="fc" id="L437">            int mana_cost = targetTower.UpgradeSpeedCost();</span>
+<span class="pc bpc" id="L438" title="1 of 2 branches missed.">            if (mana_cost &lt; mana) {</span>
+<span class="fc" id="L439">                mana -= mana_cost;</span>
+<span class="fc" id="L440">                targetTower.upgradeSpeed();</span>
+<span class="fc" id="L441">                targetTower.updateTowerImage();</span>
+            }
+        }
+
+<span class="fc bfc" id="L445" title="All 6 branches covered.">        if (damageButton.getPressed() &amp;&amp; grid[gridX][gridY].isOccupied() &amp;&amp; default_tower) {</span>
+<span class="fc" id="L446">            int mana_cost = targetTower.UpgradeDamageCost();</span>
+<span class="pc bpc" id="L447" title="1 of 2 branches missed.">            if (mana_cost &lt; mana) {</span>
+<span class="fc" id="L448">                mana -= mana_cost;</span>
+<span class="fc" id="L449">                targetTower.upgradeDamage();</span>
+<span class="fc" id="L450">                targetTower.updateTowerImage();</span>
+            }
+        }
+<span class="fc" id="L453">    }</span>
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+<span class="pc bpc" id="L457" title="1 of 2 branches missed.">        if (manaButton.getPressed()) {</span>
+            // Toggle the pressed state when the mouse is released
+<span class="nc" id="L459">            manaButton.setPressed(false);</span>
+        }
+<span class="fc" id="L461">    }</span>
+
+    /*@Override
+    public void mouseDragged(MouseEvent e) {
+
+    }*/
+
+    /**
+     * Draw all elements in the game by current frame.
+     */
+
+	@Override
+    public void draw() {
+        //Real-Time Loop start (Loop sets the game in motion i.e. pauseable stuff)
+<span class="pc bpc" id="L475" title="1 of 4 branches missed.">        if (pauseButton.getPressed() == false &amp;&amp; lose == false) {</span>
+<span class="fc" id="L476">            wave.tickWave(this); //Populates enemies full of monsters for current wave. Only updates when current wave duration finishes</span>
+
+<span class="fc" id="L478">            updateWaveInfo();</span>
+
+<span class="fc" id="L480">            HandleWaves();</span>
+
+<span class="fc bfc" id="L482" title="All 2 branches covered.">            if (mana &lt; mana_cap) </span>
+<span class="fc" id="L483">                mana += (mana_gained_per_sec * fast_forward_modifier)/60; //Here so that it pauses mana gain but I can draw the mana bar outside</span>
+
+<span class="fc" id="L485">            iterate_enemies();</span>
+
+<span class="fc" id="L487">            findEnemy();</span>
+
+<span class="fc" id="L489">            iterate_fireballs();</span>
+
+<span class="fc" id="L491">            increment_counter();</span>
+        }
+        //Real-Time Loop END
+
+<span class="fc" id="L495">        drawObjects();</span>
+
+<span class="fc bfc" id="L497" title="All 2 branches covered.">        for (Button button : buttons) {</span>
+<span class="fc" id="L498">            button.handleEvents();</span>
+<span class="fc" id="L499">            button.handleDisplay();</span>
+<span class="fc" id="L500">            button.display();</span>
+<span class="fc" id="L501">        }</span>
+
+<span class="fc" id="L503">        displayManaBar();</span>
+<span class="fc" id="L504">        textSize(18); // Adjust text size as needed</span>
+<span class="fc" id="L505">        textAlign(CENTER, CENTER);</span>
+<span class="fc" id="L506">        text(intMana + &quot; / &quot; + intManaCap, textX, textY); // Display mana / mana_cap as integers</span>
+
+        // Display the countdown timer in the top left corner of the screen
+<span class="fc" id="L509">        textSize(ManaBarHeight);</span>
+<span class="fc" id="L510">        textAlign(LEFT, TOP);</span>
+<span class="fc" id="L511">        text(&quot;MANA:&quot;, ManaBarX - 85, ManaBarY);</span>
+
+<span class="fc" id="L513">        wave.displayTimer(this, waveInfoText);</span>
+
+<span class="fc bfc" id="L515" title="All 2 branches covered.">        if (mana &lt;= 0) {</span>
+<span class="fc" id="L516">            GameLost();</span>
+<span class="pc bpc" id="L517" title="1 of 2 branches missed.">        } else if (win) {</span>
+<span class="nc" id="L518">            GameWon();</span>
+<span class="nc" id="L519">            noLoop();</span>
+        }
+<span class="fc" id="L521">    }</span>
+
+    public void iterate_fireballs() {
+<span class="fc" id="L524">        Iterator&lt;Fireball&gt; fireballIterator = activeFireballs.iterator();</span>
+<span class="fc bfc" id="L525" title="All 2 branches covered.">        while (fireballIterator.hasNext()) {</span>
+<span class="fc" id="L526">            Fireball projectile = fireballIterator.next();</span>
+<span class="fc" id="L527">            projectile.update();</span>
+            
+            // Check if the fireball has reached its target
+<span class="fc bfc" id="L530" title="All 2 branches covered.">            if (projectile.hasReachedTarget()) {</span>
+                // Apply damage to the enemy
+<span class="fc bfc" id="L532" title="All 2 branches covered.">                if (projectile instanceof Snowball) {</span>
+<span class="fc" id="L533">                    projectile.dealHit(enemies);</span>
+                } else {
+<span class="fc" id="L535">                    projectile.dealHit(null);</span>
+                }
+                // Remove the fireball from the list
+<span class="fc" id="L538">                fireballIterator.remove();</span>
+            }
+<span class="fc" id="L540">        }</span>
+<span class="fc" id="L541">    }</span>
+
+    public void iterate_enemies() {
+<span class="fc" id="L544">        enemyIterator = enemies.iterator();</span>
+<span class="fc" id="L545">        respawnedEnemies = new ArrayList&lt;&gt;(); // List to hold enemies to be respawned</span>
+            
+<span class="fc bfc" id="L547" title="All 2 branches covered.">        while (enemyIterator.hasNext()) {</span>
+<span class="fc" id="L548">            Monsters enemy = enemyIterator.next();</span>
+
+<span class="fc bfc" id="L550" title="All 4 branches covered.">            if (!enemy.isDead() &amp;&amp; !enemy.hasReachedDestination()) {</span>
+<span class="fc" id="L551">                enemy.tick();</span>
+            } else {
+<span class="fc bfc" id="L553" title="All 4 branches covered.">                if (mana &lt; mana_cap - 50 &amp;&amp; enemy.isDead()) {</span>
+<span class="fc" id="L554">                    mana += enemy.get_mana_gained_on_killed() * mana_kill_multiplier;</span>
+<span class="pc bpc" id="L555" title="1 of 4 branches missed.">                } else if (mana &gt; (mana_cap - enemy.get_mana_gained_on_killed()) &amp;&amp; mana &lt; mana_cap) {</span>
+<span class="nc" id="L556">                    mana = mana_cap;</span>
+                }
+            
+<span class="fc bfc" id="L559" title="All 2 branches covered.">                if (enemy.hasReachedDestination()) {</span>
+<span class="fc bfc" id="L560" title="All 2 branches covered.">                    if (mana &lt;= enemy.getHp()) {</span>
+<span class="fc" id="L561">                        mana = 0;</span>
+                    } else {
+<span class="fc" id="L563">                        mana -= enemy.getHp();</span>
+                    }
+<span class="fc" id="L565">                    banished_monster = new Monsters(this, enemy.getstartX(), enemy.getstartY(), enemy.getType(), enemy.getHp(), enemy.getFullHp(), enemy.getSpeed(), enemy.getArmour(), enemy.get_mana_gained_on_killed());</span>
+<span class="fc" id="L566">                    respawnedEnemies.add(banished_monster);</span>
+                }
+<span class="fc" id="L568">            enemyIterator.remove();</span>
+            }
+<span class="fc" id="L570">        } </span>
+                         
+<span class="fc" id="L572">        banished_monster_iterator = respawnedEnemies.iterator();</span>
+        //If theres any monsters to be respawned, then add them back into enemies list to be respawned again
+<span class="fc bfc" id="L574" title="All 2 branches covered.">        while (banished_monster_iterator.hasNext()) {</span>
+<span class="fc" id="L575">            Monsters enemy = banished_monster_iterator.next();</span>
+            // Pathfinding logic
+<span class="fc" id="L577">            Node goalNode = App.board.getGoalNode();</span>
+<span class="fc" id="L578">            Pathfinding pathfinder = new Pathfinding(App.board.getGrid());</span>
+                
+            // Get a random start node
+<span class="fc" id="L581">            ArrayList&lt;Node&gt; startNodes = App.board.getStartNodes();</span>
+<span class="pc bpc" id="L582" title="1 of 2 branches missed.">            if (!startNodes.isEmpty()) {</span>
+<span class="fc" id="L583">                int randomIndex = random.nextInt(startNodes.size());</span>
+<span class="fc" id="L584">                Node startNode = startNodes.get(randomIndex);</span>
+            
+<span class="fc" id="L586">                List&lt;Node&gt; path = pathfinder.findPath(startNode, goalNode);</span>
+                
+<span class="fc" id="L588">            enemy.setPath(path);</span>
+
+<span class="fc" id="L590">            enemies.add(enemy);</span>
+
+            }
+<span class="fc" id="L593">        } </span>
+<span class="fc" id="L594">    }</span>
+
+    public void increment_counter() {
+<span class="fc" id="L597">        frameCounter += 1 * fast_forward_modifier;</span>
+<span class="fc bfc" id="L598" title="All 2 branches covered.">        if (frameCounter &gt; frameRate) {</span>
+<span class="fc" id="L599">            elapsedTime++; //Tracks the elapsed time resetting whenever the pre wave pause timer ends</span>
+<span class="fc" id="L600">            countdownTimer--; // Decrement the countdown timer by 1 every second (Tracks when the wave spawns)</span>
+<span class="fc" id="L601">            frameCounter = 0;</span>
+        }
+<span class="fc" id="L603">    }</span>
+
+    public void drawObjects() {
+        //Draw elements of the game are here because regardless if its paused or not, it should still be drawn on.
+<span class="fc" id="L607">        board.draw(this); // Draw the board</span>
+<span class="fc" id="L608">        fill(132, 115, 74);</span>
+<span class="fc" id="L609">        noStroke();  // Add this line to disable outlines</span>
+<span class="fc" id="L610">        rect(0, 0, WIDTH, TOPBAR); //Create topbar background</span>
+<span class="fc" id="L611">        rect(WIDTH - SIDEBAR, TOPBAR, SIDEBAR, HEIGHT - TOPBAR); //Create sidebar Background</span>
+
+<span class="fc bfc" id="L613" title="All 2 branches covered.">        for (Tower tower : towers) {</span>
+<span class="fc" id="L614">            tower.draw(this);</span>
+<span class="fc bfc" id="L615" title="All 2 branches covered.">            if (rangeButton.getPressed()) {</span>
+<span class="fc" id="L616">                tower.setRangeToggle(true);</span>
+            } else {
+<span class="fc" id="L618">                tower.setRangeToggle(false);</span>
+            }
+
+<span class="fc bfc" id="L621" title="All 2 branches covered.">            if (speedButton.getPressed()) {</span>
+<span class="fc" id="L622">                tower.setSpeedToggle(true);</span>
+            } else {
+<span class="fc" id="L624">                tower.setSpeedToggle(false);</span>
+            }
+
+<span class="fc bfc" id="L627" title="All 2 branches covered.">            if (damageButton.getPressed()) {</span>
+<span class="fc" id="L628">                tower.setDamageToggle(true);</span>
+            } else {
+<span class="fc" id="L630">                tower.setDamageToggle(false);</span>
+            }
+<span class="fc" id="L632">        }</span>
+
+<span class="fc bfc" id="L634" title="All 2 branches covered.">        for (Monsters enemy : enemies) {</span>
+<span class="fc" id="L635">            enemy.draw(this);</span>
+<span class="fc" id="L636">        }</span>
+
+<span class="fc bfc" id="L638" title="All 2 branches covered.">        for (Fireball fireball : activeFireballs) {</span>
+<span class="fc" id="L639">            fireball.draw(this);</span>
+<span class="fc" id="L640">        }</span>
+
+<span class="fc" id="L642">        board.drawWizardTower(this);</span>
+<span class="fc" id="L643">    }</span>
+
+    public void HandleWaves() {
+            // handle wave info and countdown
+<span class="fc bfc" id="L647" title="All 4 branches covered.">            if (wave.getPauseEnded() &amp;&amp; timer_call) {</span>
+<span class="fc" id="L648">                timeUntilNextWave = wave.getTimeUntilNextWave();</span>
+<span class="fc" id="L649">                countdownTimer = (int) timeUntilNextWave;</span>
+<span class="fc" id="L650">                timer_call = false;</span>
+<span class="fc" id="L651">                wave_number += 1;</span>
+<span class="fc" id="L652">                pauseTimer = 0;</span>
+<span class="fc" id="L653">                wave_duration = wave.getDuration();</span>
+<span class="fc" id="L654">                next_pre_wave_pause = wave.getPreWavePause(1);</span>
+            }
+
+            // Check if it's time to start the wave
+<span class="fc bfc" id="L658" title="All 2 branches covered.">            if (wave.firstWave()) {</span>
+<span class="fc bfc" id="L659" title="All 2 branches covered.">                if (elapsedTime &gt; wave.getPreWavePause(0)) {</span>
+<span class="fc" id="L660">                    wave.setStartSpawning(true);</span>
+<span class="fc" id="L661">                    wave.setWaveStarted(true);</span>
+<span class="fc" id="L662">                    wave.setfirstWave();</span>
+<span class="fc" id="L663">                    timer_call = true;</span>
+<span class="fc" id="L664">                    elapsedTime = 0;</span>
+                }
+            } else {
+<span class="fc bfc" id="L667" title="All 4 branches covered.">                if ((elapsedTime &gt; next_pre_wave_pause + wave_duration) &amp;&amp; !wave.getPauseEnded()) {</span>
+<span class="fc" id="L668">                    wave.setStartSpawning(true);</span>
+<span class="fc" id="L669">                    wave.pause_ended(true);</span>
+<span class="fc" id="L670">                    elapsedTime = 0;</span>
+                }
+            }
+
+<span class="fc" id="L674">            frameCounter_2 += 1;</span>
+<span class="fc bfc" id="L675" title="All 2 branches covered.">            if (frameCounter_2 &gt; frameRate * wave.getSpawnDelay()) {</span>
+<span class="fc" id="L676">                spawnTime += (1 * wave.getSpawnDelay());</span>
+<span class="fc" id="L677">                frameCounter_2 = 0;</span>
+            }
+            //Starts spawning the monsters while the wave is active
+<span class="fc bfc" id="L680" title="All 6 branches covered.">            if (spawnTime &gt;= wave.getSpawnDelay() &amp;&amp; spawnedMonsters &lt; wave.getWaveQuantity() &amp;&amp; wave.getstartSpawning()) {</span>
+<span class="fc" id="L681">                wave.spawnMonsters(enemies);</span>
+
+<span class="fc" id="L683">                spawnTime = 0;</span>
+<span class="fc" id="L684">                spawnedMonsters++; // Increment the count of spawned monsters</span>
+<span class="fc bfc" id="L685" title="All 4 branches covered.">            } else if (spawnedMonsters == wave.getWaveQuantity() &amp;&amp; wave.MoreWavesLeft()) {</span>
+<span class="fc" id="L686">                wave.setWaveStarted(false); //End the previous wave and indicate to start the next</span>
+<span class="fc" id="L687">                wave.setStartSpawning(false); //stops the spawning of current wave</span>
+<span class="fc" id="L688">                wave.setWaveQuantity(0); //Reset back to currently 0 waves to count again for next</span>
+<span class="fc" id="L689">                wave.nextWave(); //Increments wave iteration i.e. goes onto next wave</span>
+<span class="fc" id="L690">                wave.pause_ended(false);</span>
+<span class="fc" id="L691">                timer_call = true;</span>
+
+<span class="fc" id="L693">                spawnedMonsters = 0;</span>
+<span class="pc bpc" id="L694" title="1 of 4 branches missed.">            } else if (spawnedMonsters == wave.getWaveQuantity() &amp;&amp; enemies.size() == 0) {</span>
+<span class="nc" id="L695">                win = true;</span>
+            }
+<span class="fc" id="L697">    }</span>
+
+    public void updateWaveInfo() {
+<span class="fc bfc" id="L700" title="All 2 branches covered.">        if (countdownTimer &lt; 0) {</span>
+<span class="fc" id="L701">            countdownTimer = 0;</span>
+        } 
+
+<span class="fc bfc" id="L704" title="All 2 branches covered.">        if (wave_number &lt; wave.getTotalWaves() + 1) {</span>
+<span class="fc" id="L705">            waveInfoText = &quot;Wave &quot; + wave_number + &quot; starts: &quot; + countdownTimer;</span>
+        } else {
+<span class="fc" id="L707">            waveInfoText = &quot;&quot;;</span>
+        }
+<span class="fc" id="L709">    }</span>
+
+    void GameWon() {
+<span class="nc" id="L712">        fill(255, 0, 255);</span>
+        
+        // Draw the text at the center of the screen
+<span class="nc" id="L715">        text(&quot;YOU WIN!&quot;, width/2 - 150, height/2 - 150);</span>
+<span class="nc" id="L716">    }</span>
+
+    void GameLost() {
+<span class="fc" id="L719">        lose = true;</span>
+<span class="fc" id="L720">        fill(0, 255, 0);</span>
+        
+        // Draw the text at the center of the screen
+<span class="fc" id="L723">        text(&quot;YOU LOST&quot;, width/2 - 150, height/2 - 150);</span>
+<span class="fc" id="L724">        text(&quot;Press 'r' to restart&quot;, width/2 - 150, height/2 - 100);</span>
+    
+<span class="fc" id="L726">    }</span>
+
+    void displayManaBar() {
+        // Calculate the position for the text (centered within the mana bar)
+<span class="fc" id="L730">        textX = ManaBarX + ManaBarWidth / 2;</span>
+<span class="fc" id="L731">        textY = ManaBarY + ManaBarHeight / 2;</span>
+
+<span class="fc" id="L733">        float manaPercentage = mana / mana_cap;</span>
+<span class="fc" id="L734">        fill(255, 255, 255); //White colour</span>
+<span class="fc" id="L735">        rect(ManaBarX, ManaBarY, ManaBarWidth, ManaBarHeight); //draw background of manabar</span>
+
+<span class="fc" id="L737">        fill(0, 200, 255); //Mana Colour</span>
+<span class="fc" id="L738">        rect(ManaBarX, ManaBarY, ManaBarWidth * manaPercentage, ManaBarHeight); //Draw the manapool over background</span>
+
+<span class="fc" id="L740">        intMana = (int) mana; // Convert to integers using these variables for display only</span>
+<span class="fc" id="L741">        intManaCap = (int) mana_cap; </span>
+
+<span class="fc" id="L743">        fill(0);</span>
+<span class="fc" id="L744">    }</span>
+    
+
+    void findEnemy() {
+<span class="fc bfc" id="L748" title="All 2 branches covered.">        for (Tower tower : towers) {</span>
+<span class="fc bfc" id="L749" title="All 2 branches covered.">            if (tower.getCooldown() &gt; 0) {</span>
+<span class="fc" id="L750">                tower.decrementCooldown(); // Decrement the cooldown timer</span>
+            }
+    
+            // Check if the tower is ready to fire (cooldown has expired)
+<span class="fc bfc" id="L754" title="All 2 branches covered.">            if (tower.getCooldown() &lt;= 0) {</span>
+<span class="fc" id="L755">                boolean hasFired = false; // Flag to track if the tower has fired</span>
+
+<span class="fc bfc" id="L757" title="All 2 branches covered.">                if (tower instanceof FreezeTower) {</span>
+<span class="fc" id="L758">                    tower.findEnemy(hasFired, enemies, activeFireballs, snowballImg, false);</span>
+                } else {
+<span class="fc" id="L760">                    tower.findEnemy(hasFired, enemies, activeFireballs, fireballImg, true);</span>
+                }
+            }
+<span class="fc" id="L763">        }</span>
+<span class="fc" id="L764">    }</span>
+    
+    public static void main(String[] args) {
+<span class="nc" id="L767">        PApplet.main(&quot;WizardTD.App&quot;);</span>
+<span class="nc" id="L768">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.9.202303310957</span></div></body></html>

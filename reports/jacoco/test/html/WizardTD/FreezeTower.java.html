@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FreezeTower.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java_game</a> &gt; <a href="index.source.html" class="el_package">WizardTD</a> &gt; <span class="el_source">FreezeTower.java</span></div><h1>FreezeTower.java</h1><pre class="source lang-java linenums">package WizardTD;
+
+import java.util.List;
+
+import processing.core.PApplet;
+import processing.core.PImage;
+
+public class FreezeTower extends Tower {
+    PApplet parent; // Reference to the main PApplet
+
+    //Coordinates of tower
+    private int xCoords;
+    private int yCoords;
+    private int realCentreX;
+    private int realCentreY;
+    //PImage references and functionalities
+    private PImage[] towerImgs;
+
+    public int towerRange;
+    double fireRate; // Fire rate in fireballs per second
+
+    public FreezeTower(PApplet parent, int gridX, int gridY, PImage[] towerImgs) {
+<span class="fc" id="L23">        super(parent, gridX, gridY, towerImgs);</span>
+<span class="fc" id="L24">        this.parent = parent;</span>
+<span class="fc" id="L25">        this.towerImgs = towerImgs;</span>
+
+<span class="fc" id="L27">        xCoords = (gridX * App.CELLSIZE);</span>
+<span class="fc" id="L28">        yCoords = (gridY * App.CELLSIZE) + App.TOPBAR;</span>
+
+<span class="fc" id="L30">        realCentreX = xCoords + (App.CELLSIZE / 2);</span>
+<span class="fc" id="L31">        realCentreY = yCoords + (App.CELLSIZE / 2);</span>
+
+<span class="fc" id="L33">        this.towerRange = App.json.getInt(&quot;initial_tower_range&quot;)/2;</span>
+<span class="fc" id="L34">        this.fireRate = App.json.getFloat(&quot;initial_freeze_tower_firing_speed&quot;);</span>
+
+<span class="fc" id="L36">    }</span>
+
+    public void findEnemy(boolean hasFired, List&lt;Monsters&gt; enemies, List&lt;Fireball&gt; activeFireballs, PImage fireballImg) {
+        // Iterate through all enemies to find targets
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        for (Monsters enemy : enemies) {</span>
+            // Calculate the distance between the tower and enemy
+<span class="fc" id="L42">            float distance = dist(getXCoords() + App.CELLSIZE / 2, getYCoords() + App.CELLSIZE / 2,</span>
+<span class="fc" id="L43">                    enemy.getX() + Monsters.MONSTER_SIZE / 2, enemy.getY() + Monsters.MONSTER_SIZE / 2);</span>
+    
+            // If the enemy is within the tower's range and not dying, attack it
+<span class="fc bfc" id="L46" title="All 6 branches covered.">            if (distance &lt;= towerRange &amp;&amp; !enemy.getDying() &amp;&amp; !enemy.isFrozen()) {</span>
+<span class="fc" id="L47">                attackEnemy(enemy, activeFireballs, fireballImg);</span>
+<span class="fc" id="L48">                hasFired = true; // Tower has fired</span>
+<span class="fc" id="L49">                break; // Exit the loop since the tower has fired</span>
+                }
+<span class="fc" id="L51">            }</span>
+
+<span class="fc bfc" id="L53" title="All 2 branches covered.">            if (hasFired) {</span>
+<span class="fc" id="L54">                double timeBetweenShots = 1000.0 / fireRate; // Convert fire rate from fireballs per second to milliseconds</span>
+<span class="fc" id="L55">                setCooldown(timeBetweenShots);</span>
+        }
+<span class="fc" id="L57">    }</span>
+
+    public void draw(PApplet app) {
+<span class="fc" id="L60">        app.image(towerImgs[0], xCoords, yCoords);</span>
+
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (isMouseOver()) {</span>
+            // Set the drawing properties for the attack range circle
+<span class="fc" id="L64">            parent.pushStyle(); // Save the current drawing state</span>
+<span class="fc" id="L65">            parent.noFill(); // No fill</span>
+<span class="fc" id="L66">            parent.stroke(255, 255, 0); // Yellow outline color</span>
+<span class="fc" id="L67">            parent.strokeWeight(2); // Adjust line thickness for the outline</span>
+
+            // Draw the attack range circle
+<span class="fc" id="L70">            parent.ellipse(realCentreX, realCentreY, towerRange * 2, towerRange * 2);</span>
+
+            // Restore the previous drawing state to avoid affecting other shapes
+<span class="fc" id="L73">            parent.popStyle();</span>
+        } 
+<span class="fc" id="L75">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.9.202303310957</span></div></body></html>

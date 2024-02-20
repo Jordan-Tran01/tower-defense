@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Pathfinding.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java_game</a> &gt; <a href="index.source.html" class="el_package">WizardTD</a> &gt; <span class="el_source">Pathfinding.java</span></div><h1>Pathfinding.java</h1><pre class="source lang-java linenums">package WizardTD;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+
+public class Pathfinding {
+    private boolean[][] grid;
+
+<span class="fc" id="L13">    public Pathfinding(boolean[][] grid) {</span>
+<span class="fc" id="L14">        this.grid = grid;</span>
+<span class="fc" id="L15">    }</span>
+
+    public List&lt;Node&gt; findPath(Node start, Node goal) {
+<span class="fc" id="L18">        PriorityQueue&lt;Node&gt; openSet = new PriorityQueue&lt;&gt;();</span>
+<span class="fc" id="L19">        List&lt;Node&gt; closedSet = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L20">        openSet.add(start);</span>
+
+        // Create a mapping to store the best-known path to each node
+<span class="fc" id="L23">        Map&lt;Node, Node&gt; cameFrom = new HashMap&lt;&gt;();</span>
+        // Initialize the cost from start to start to be 0
+<span class="fc" id="L25">        start.setG(0);</span>
+        
+<span class="pc bpc" id="L27" title="1 of 2 branches missed.">        while (!openSet.isEmpty()) {</span>
+<span class="fc" id="L28">            Node current = openSet.poll();</span>
+
+<span class="fc bfc" id="L30" title="All 2 branches covered.">            if (current.equals(goal)) {</span>
+                // Reconstruct the path using the cameFrom mapping
+<span class="fc" id="L32">                List&lt;Node&gt; path = reconstructPath(current, cameFrom);</span>
+
+                // Reverse the path to start from the monster's current position
+<span class="fc" id="L35">                Collections.reverse(path);</span>
+<span class="fc" id="L36">                return path;</span>
+            }
+
+<span class="fc" id="L39">            closedSet.add(current);</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">            for (Node neighbor : getNeighbors(current)) {</span>
+<span class="fc bfc" id="L41" title="All 4 branches covered.">                if (closedSet.contains(neighbor) || !neighbor.isWalkable()) {</span>
+<span class="fc" id="L42">                    continue;</span>
+                }
+
+<span class="fc" id="L45">                int tentativeGScore = current.getG() + 1;</span>
+
+<span class="pc bpc" id="L47" title="1 of 4 branches missed.">                if (!openSet.contains(neighbor) || tentativeGScore &lt; neighbor.getG()) {</span>
+<span class="fc" id="L48">                    cameFrom.put(neighbor, current);</span>
+<span class="fc" id="L49">                    neighbor.setG(tentativeGScore);</span>
+<span class="fc" id="L50">                    neighbor.setH(heuristic(neighbor, goal));</span>
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">                    if (!openSet.contains(neighbor)) {</span>
+<span class="fc" id="L52">                        openSet.add(neighbor);</span>
+                    }
+                }
+<span class="fc" id="L55">            }</span>
+<span class="fc" id="L56">        }</span>
+
+<span class="nc" id="L58">        return null; // No path found</span>
+    }
+
+    private List&lt;Node&gt; reconstructPath(Node current, Map&lt;Node, Node&gt; cameFrom) {
+<span class="fc" id="L62">        List&lt;Node&gt; path = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        while (current != null) {</span>
+<span class="fc" id="L64">            path.add(current);</span>
+<span class="fc" id="L65">            current = cameFrom.get(current);</span>
+        }
+<span class="fc" id="L67">        return path;</span>
+    }
+
+
+    private List&lt;Node&gt; getNeighbors(Node node) {
+<span class="fc" id="L72">        List&lt;Node&gt; neighbors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L73">        int row = node.getRow();</span>
+<span class="fc" id="L74">        int col = node.getCol();</span>
+    
+        // Example: Add adjacent nodes
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (isValidLocation(row - 1, col)) {</span>
+<span class="fc" id="L78">            neighbors.add(new Node(row - 1, col, grid));</span>
+        }
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        if (isValidLocation(row + 1, col)) {</span>
+<span class="fc" id="L81">            neighbors.add(new Node(row + 1, col, grid));</span>
+        }
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (isValidLocation(row, col - 1)) {</span>
+<span class="fc" id="L84">            neighbors.add(new Node(row, col - 1, grid));</span>
+        }
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (isValidLocation(row, col + 1)) {</span>
+<span class="fc" id="L87">            neighbors.add(new Node(row, col + 1, grid));</span>
+        }
+    
+<span class="fc" id="L90">        return neighbors;</span>
+    }
+
+    private boolean isValidLocation(int row, int col) {
+<span class="fc bfc" id="L94" title="All 8 branches covered.">        return row &gt;= 0 &amp;&amp; row &lt; grid.length &amp;&amp; col &gt;= 0 &amp;&amp; col &lt; grid[0].length;</span>
+    }
+
+    private int heuristic(Node a, Node b) {
+        // Implement your heuristic function (e.g., Manhattan distance, Euclidean distance) here
+        // For example, using Manhattan distance:
+<span class="fc" id="L100">        return Math.abs(a.getRow() - b.getRow()) + Math.abs(a.getCol() - b.getCol());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.9.202303310957</span></div></body></html>

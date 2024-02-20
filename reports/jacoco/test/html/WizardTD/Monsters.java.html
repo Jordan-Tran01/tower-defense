@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Monsters.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">java_game</a> &gt; <a href="index.source.html" class="el_package">WizardTD</a> &gt; <span class="el_source">Monsters.java</span></div><h1>Monsters.java</h1><pre class="source lang-java linenums">package WizardTD;
+
+import processing.core.PImage;
+import processing.core.PApplet;
+import java.util.List;
+
+public class Monsters {
+    public float x;
+    public float y;
+    public float startX;
+    public float startY;
+    public String nameType;
+    public PImage type;
+    public PImage frozen_type;
+    public float hp;
+    public float fullhp;
+    public float Vel;
+    public double armour;
+    
+    public float Initial_Vel;
+    public float Vel_before_freeze; 
+    public int mana_gain_on_kill;
+
+    private float freeze_duration;
+    private boolean frozen;
+    private int freezeTimer;
+
+    private int deathFrameIndex;  // Index of the current death frame
+<span class="fc" id="L29">    private boolean dead = false;</span>
+<span class="fc" id="L30">    private boolean isDying = false;</span>
+<span class="fc" id="L31">    private int deathFrameDuration = 4; // Number of frames per death frame</span>
+<span class="fc" id="L32">    private int deathFrameTimer = 0;     // Timer to control frame duration</span>
+
+    private List&lt;Node&gt; path; // Add a member to store the path
+    public static final int MONSTER_SIZE = 20;
+    public static final int HorizontalTileOffset = 6;
+    public static final int VerticalTileOffset = 46;
+<span class="fc" id="L38">    int GRID_CELL_SIZE = 32; // Adjust this based on your game's grid cell size</span>
+
+    private Node startNode;
+
+
+    private PImage[] deathFrames;
+
+    public void setPath(List&lt;Node&gt; path) {
+<span class="fc" id="L46">        this.path = path;</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (path != null) </span>
+<span class="fc" id="L48">            startNode = path.get(0);</span>
+<span class="fc" id="L49">    }</span>
+
+<span class="fc" id="L51">    public Monsters(PApplet app, float x, float y, String type, float hp, float fullhp, float speed, double armour, int mana_gain_on_kill) {</span>
+<span class="fc" id="L52">        this.nameType = type;</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (type.equals(&quot;gremlin&quot;)) {</span>
+<span class="fc" id="L54">            this.type = App.gremlinImg;</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        } else if (type.equals(&quot;beetle&quot;)) {</span>
+<span class="fc" id="L56">            this.type = App.beetleImg;</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        } else if (type.equals(&quot;worm&quot;)) {</span>
+<span class="fc" id="L58">            this.type = App.wormImg;</span>
+        } else {
+<span class="fc" id="L60">            this.type = App.gremlinImg;</span>
+        }
+
+<span class="fc" id="L63">        this.Vel = speed; //Change this through config when passing parameter</span>
+<span class="fc" id="L64">        this.Initial_Vel = speed;</span>
+<span class="fc" id="L65">        this.x = x;</span>
+<span class="fc" id="L66">        this.y = y;</span>
+<span class="fc" id="L67">        this.startX = x;</span>
+<span class="fc" id="L68">        this.startY = y;</span>
+<span class="fc" id="L69">        this.hp = hp;</span>
+<span class="fc" id="L70">        this.fullhp = fullhp;</span>
+<span class="fc" id="L71">        this.armour = armour;</span>
+<span class="fc" id="L72">        this.mana_gain_on_kill = mana_gain_on_kill;</span>
+<span class="fc" id="L73">        this.deathFrames = App.deathFrames; // Store the death frames array</span>
+<span class="fc" id="L74">        this.frozen_type = App.frozengremlinImg;</span>
+        //Get starting nodes
+<span class="fc" id="L76">    }</span>
+
+    public float getstartX() {
+<span class="fc" id="L79">        return startX;</span>
+    }
+
+    public float getstartY() {
+<span class="fc" id="L83">        return startY;</span>
+    }
+
+    public float getFullHp() {
+<span class="fc" id="L87">        return fullhp;</span>
+    }
+    
+    public Node getStartNode() {
+<span class="nc" id="L91">        return startNode;</span>
+    }
+
+    public PImage[] getdeathFrames() {
+<span class="nc" id="L95">        return deathFrames;</span>
+    }
+
+    public String getType() {
+<span class="fc" id="L99">        return nameType;</span>
+    }
+
+    public float getHp() {
+<span class="fc" id="L103">        return hp;</span>
+    }
+
+    public float getSpeed() {
+<span class="fc" id="L107">        return Initial_Vel;</span>
+    }
+
+    public double getArmour() {
+<span class="fc" id="L111">        return armour;</span>
+    }
+
+    public int get_mana_gained_on_killed() {
+<span class="fc" id="L115">        return mana_gain_on_kill;</span>
+    }
+    
+
+    public void takeDamage(double damage) {
+<span class="fc" id="L120">        damage = damage * armour;</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (hp &lt;= damage) {</span>
+<span class="fc" id="L122">            hp = 0;</span>
+<span class="fc" id="L123">            Initial_Vel = 0;</span>
+<span class="fc" id="L124">            isDying = true;</span>
+<span class="fc" id="L125">            return;</span>
+        } else {
+<span class="fc" id="L127">            hp -= damage;</span>
+        }
+<span class="fc" id="L129">    }</span>
+
+    public void takeFreeze(float freeze_duration) {
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (!frozen) {</span>
+<span class="fc" id="L133">            Vel_before_freeze = Initial_Vel;</span>
+        }
+<span class="fc" id="L135">        this.freeze_duration = freeze_duration;</span>
+<span class="fc" id="L136">        frozen = true;</span>
+<span class="fc" id="L137">        Initial_Vel = 0;</span>
+<span class="fc" id="L138">        freezeTimer = 0; //In the scenario the Monsters are hit again to reset freeze duration</span>
+<span class="fc" id="L139">    }</span>
+
+    public boolean isFrozen() {
+<span class="fc" id="L142">        return frozen;</span>
+    }
+
+    public boolean isDead() {
+<span class="fc" id="L146">        return dead;</span>
+    }
+
+    public void tick() {
+<span class="fc bfc" id="L150" title="All 4 branches covered.">        if (path != null &amp;&amp; !path.isEmpty()) {</span>
+<span class="fc" id="L151">            Vel = Initial_Vel;</span>
+            // Get the next node in the path
+<span class="fc" id="L153">            Node nextNode = path.get(0);</span>
+<span class="fc" id="L154">            Vel = Vel * App.fast_forward_modifier;</span>
+            // Calculate the distance between the monster and the next node in pixels
+<span class="fc" id="L156">            float dx = nextNode.getCol() * GRID_CELL_SIZE - x;</span>
+<span class="fc" id="L157">            float dy = nextNode.getRow() * GRID_CELL_SIZE - y;</span>
+<span class="fc" id="L158">            float distance = (float) Math.sqrt(dx * dx + dy * dy);</span>
+
+            // Calculate the velocity in pixels per frame
+<span class="fc" id="L161">            float vx = (float) (dx / distance) * Vel;</span>
+<span class="fc" id="L162">            float vy = (float) (dy / distance) * Vel;</span>
+
+            // Check if the monster has reached the next node
+<span class="fc bfc" id="L165" title="All 2 branches covered.">            if (distance &lt;= Vel) {</span>
+                // Remove the reached node from the path
+<span class="fc" id="L167">                path.remove(0);</span>
+
+                // Check if there are more nodes in the path
+<span class="fc bfc" id="L170" title="All 2 branches covered.">                if (!path.isEmpty()) {</span>
+                    // Get the new next node
+<span class="fc" id="L172">                    nextNode = path.get(0);</span>
+                }
+            }
+
+            // Update the monster's position
+<span class="fc" id="L177">            x += vx;</span>
+<span class="fc" id="L178">            y += vy;</span>
+
+<span class="fc bfc" id="L180" title="All 2 branches covered.">            if (isDying) {</span>
+                // Draw death animation frames
+<span class="pc bpc" id="L182" title="2 of 8 branches missed.">                if (deathFrames != null &amp;&amp; deathFrameIndex &gt;= 0 &amp;&amp; deathFrameIndex &lt; deathFrames.length &amp;&amp; deathFrames[deathFrameIndex] != null) {</span>
+<span class="fc" id="L183">                    type = deathFrames[deathFrameIndex];</span>
+                }
+
+                // Update death frame timer
+<span class="fc" id="L187">                deathFrameTimer++;</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">                if (deathFrameTimer &gt;= deathFrameDuration) {</span>
+<span class="fc" id="L189">                    deathFrameIndex++;</span>
+<span class="fc" id="L190">                    deathFrameTimer = 0;</span>
+                }
+                    
+                    // Check if the death animation is complete
+<span class="fc bfc" id="L194" title="All 2 branches covered.">                if (deathFrameIndex &gt;= deathFrames.length) {</span>
+<span class="fc" id="L195">                    dead = true;</span>
+                }
+            }
+
+<span class="fc bfc" id="L199" title="All 2 branches covered.">            if (frozen) {</span>
+<span class="fc" id="L200">                freezeTimer += 1 * App.fast_forward_modifier;</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">                if (freezeTimer &gt;= freeze_duration * App.FPS) {</span>
+<span class="fc" id="L202">                    frozen = false;</span>
+<span class="fc" id="L203">                    freezeTimer = 0;</span>
+<span class="fc" id="L204">                    Initial_Vel = Vel_before_freeze;</span>
+                }
+            }
+        } 
+<span class="fc" id="L208">    }</span>
+
+    public void draw(PApplet app) {
+<span class="fc bfc" id="L211" title="All 2 branches covered.">        if (!isDying) {</span>
+            // Calculate HP bar dimensions
+<span class="fc" id="L213">            float barWidth = 30; // Adjust this as needed</span>
+<span class="fc" id="L214">            float barHeight = 5; // Adjust this as needed</span>
+<span class="fc" id="L215">            float barX = x - (barWidth / 2) + (MONSTER_SIZE / 2) + HorizontalTileOffset;</span>
+<span class="fc" id="L216">            float barY = y - 6 + VerticalTileOffset; // Adjust this as needed</span>
+        
+            // Calculate the percentage of HP remaining
+<span class="fc" id="L219">            float hpPercentage = hp / fullhp;</span>
+<span class="fc" id="L220">            float remaining_hp = hpPercentage * barWidth;</span>
+<span class="fc" id="L221">            app.noStroke();</span>
+            // Draw the HP bar background (red)
+<span class="fc" id="L223">            app.fill(255, 0, 0); // Red color</span>
+<span class="fc" id="L224">            app.rect(barX, barY, barWidth, barHeight);</span>
+        
+            // Draw the HP bar (green) based on the HP percentage
+<span class="fc" id="L227">            app.fill(0, 255, 0); // Green color</span>
+<span class="fc" id="L228">            app.rect(barX, barY, remaining_hp, barHeight);</span>
+        }
+    
+        // Draw the monster image
+<span class="fc bfc" id="L232" title="All 4 branches covered.">        if (frozen &amp;&amp; !isDying) {</span>
+<span class="fc" id="L233">            app.image(frozen_type, (float) x + HorizontalTileOffset, (float) y + VerticalTileOffset);</span>
+        } else {
+<span class="fc" id="L235">            app.image(type, (float) x + HorizontalTileOffset, (float) y + VerticalTileOffset);</span>
+        }
+<span class="fc" id="L237">    }</span>
+
+    public boolean hasReachedDestination() {
+        // Check if the path list is empty
+<span class="fc bfc" id="L241" title="All 4 branches covered.">        return path == null || path.isEmpty();</span>
+    }
+    
+    public boolean getDying() {
+<span class="fc" id="L245">        return isDying;</span>
+    }
+
+    public float getX() {
+<span class="fc" id="L249">        float real_x = x + HorizontalTileOffset;</span>
+<span class="fc" id="L250">        return real_x;</span>
+    }
+
+    public float getY() {
+<span class="fc" id="L254">        float real_y = y + VerticalTileOffset;</span>
+<span class="fc" id="L255">        return real_y;</span>
+    }
+    
+
+    // Implement any additional methods or logic as needed for your monsters
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.9.202303310957</span></div></body></html>
